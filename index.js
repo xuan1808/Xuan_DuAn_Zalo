@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
       dotsWrap.appendChild(dot);
     }
   }
-
   // Scroll to card
   function goTo(idx) {
     current = idx;
@@ -42,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function () {
     goTo(current);
     resetAuto();
   });
-
   // Autoplay
   function autoPlay() {
     autoInterval = setInterval(() => {
@@ -54,7 +52,6 @@ document.addEventListener('DOMContentLoaded', function () {
     clearInterval(autoInterval);
     autoPlay();
   }
-
   // Drag/Swipe
   let isDown = false;
   let startX, scrollLeft;
@@ -114,126 +111,118 @@ document.addEventListener('DOMContentLoaded', function () {
   goTo(0);
   autoPlay();
 });
-document.addEventListener('DOMContentLoaded', function () {
-  const slider = document.getElementById('testimonialsSlider');
-  const leftBtn = document.querySelector('.testimonials-arrow.left');
-  const rightBtn = document.querySelector('.testimonials-arrow.right');
-  const dotsWrap = document.getElementById('testimonialsDots');
-  const cards = Array.from(slider.children);
-  const cardCount = cards.length;
-  let visible = 4;
+// slider đnahs giá kahcs hàng 
+
+document.addEventListener("DOMContentLoaded", function () {
+  const slider = document.querySelector('.testimonials-slider');
+  const items = Array.from(slider.querySelectorAll('.testimonial-item'));
+  const prevBtn = document.querySelector('.prev-btn');
+  const nextBtn = document.querySelector('.next-btn');
+
+  // Thông số cố định cho 3 item
+  const VISIBLE = 3;
   let current = 0;
-  let cardWidth = cards[0].offsetWidth + parseInt(getComputedStyle(slider).gap || 16);
+  let autoSlideInterval = null;
+  let isAnimating = false;
 
-  function updateVisible() {
-    if (window.innerWidth < 700) visible = 1;
-    else if (window.innerWidth < 1000) visible = 2;
-    else visible = 4;
-    cardWidth = cards[0].offsetWidth + parseInt(getComputedStyle(slider).gap || 16);
-    goTo(current, false);
-    renderDots();
-  }
-
-  function renderDots() {
-    dotsWrap.innerHTML = '';
-    let dotCount = cardCount - visible + 1;
-    if (dotCount < 1) dotCount = 1;
-    for (let i = 0; i < dotCount; i++) {
-      const dot = document.createElement('div');
-      dot.className = 'testimonials-dot' + (i === current ? ' active' : '');
-      dot.addEventListener('click', () => {
-        goTo(i, true);
-      });
-      dotsWrap.appendChild(dot);
+  // Tạo clone cho hiệu ứng seamless
+  function setupClones() {
+    // Xóa clone cũ nếu có
+    slider.querySelectorAll('.clone').forEach(clone => clone.remove());
+    // Clone cuối lên đầu
+    for (let i = items.length - VISIBLE; i < items.length; i++) {
+      const clone = items[i].cloneNode(true);
+      clone.classList.add('clone');
+      slider.insertBefore(clone, slider.firstChild);
+    }
+    // Clone đầu xuống cuối
+    for (let i = 0; i < VISIBLE; i++) {
+      const clone = items[i].cloneNode(true);
+      clone.classList.add('clone');
+      slider.appendChild(clone);
     }
   }
 
-  function goTo(idx, smooth = true) {
-    let maxIdx = cardCount - visible;
-    if (maxIdx < 0) maxIdx = 0;
-    current = Math.max(0, Math.min(idx, maxIdx));
-    slider.scrollTo({ left: cardWidth * current, behavior: smooth ? 'smooth' : 'auto' });
-    renderDots();
+  function getItemWidth() {
+    let item = slider.querySelector('.testimonial-item');
+    if (!item) return 320;
+    let gap = parseInt(getComputedStyle(slider).gap || 0, 10);
+    return item.offsetWidth + gap;
   }
 
-  leftBtn.addEventListener('click', function () {
-    goTo(current - 1, true);
-    resetAuto();
-  });
-  rightBtn.addEventListener('click', function () {
-    goTo(current + 1, true);
-    resetAuto();
-  });
+  function moveTo(idx, withTransition = true) {
+    let itemWidth = getItemWidth();
+    slider.style.transition = withTransition ? "transform 0.55s cubic-bezier(.7,1.3,.2,1)" : "none";
+    slider.style.transform = `translateX(${-itemWidth * (idx + VISIBLE)}px)`;
+    current = idx;
+  }
 
-  // Touch/drag swipe
-  let isDown = false;
-  let startX, scrollLeft;
-  slider.addEventListener('mousedown', (e) => {
-    isDown = true;
-    slider.classList.add('dragging');
-    startX = e.pageX - slider.offsetLeft;
-    scrollLeft = slider.scrollLeft;
-  });
-  slider.addEventListener('mouseleave', () => {
-    isDown = false;
-    slider.classList.remove('dragging');
-  });
-  slider.addEventListener('mouseup', () => {
-    isDown = false;
-    slider.classList.remove('dragging');
-    let idx = Math.round(slider.scrollLeft / cardWidth);
-    goTo(idx, true);
-    resetAuto();
-  });
-  slider.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
-    e.preventDefault();
-    const x = e.pageX - slider.offsetLeft;
-    const walk = (startX - x);
-    slider.scrollLeft = scrollLeft + walk;
-  });
-
-  // Touch (mobile)
-  slider.addEventListener('touchstart', (e) => {
-    isDown = true;
-    startX = e.touches[0].pageX - slider.offsetLeft;
-    scrollLeft = slider.scrollLeft;
-  });
-  slider.addEventListener('touchend', () => {
-    isDown = false;
-    let idx = Math.round(slider.scrollLeft / cardWidth);
-    goTo(idx, true);
-    resetAuto();
-  });
-  slider.addEventListener('touchmove', (e) => {
-    if (!isDown) return;
-    const x = e.touches[0].pageX - slider.offsetLeft;
-    const walk = (startX - x);
-    slider.scrollLeft = scrollLeft + walk;
-  });
-
-  // Auto-play
-  let autoInterval = null;
-  function autoPlay() {
-    clearInterval(autoInterval);
-    autoInterval = setInterval(() => {
-      let maxIdx = cardCount - visible;
-      if (current < maxIdx) {
-        goTo(current + 1, true);
+  function nextSlide() {
+    if (isAnimating) return;
+    isAnimating = true;
+    moveTo(current + 1, true);
+    setTimeout(() => {
+      const max = items.length - VISIBLE;
+      if (current + 1 > max - 1) {
+        // Không animate, nhảy về đầu ngay lập tức, không giật
+        moveTo(0, false);
       } else {
-        goTo(0, true);
+        current++;
       }
-    }, 3500);
-  }
-  function resetAuto() {
-    clearInterval(autoInterval);
-    autoPlay();
+      isAnimating = false;
+    }, 560);
+    restartAuto();
   }
 
-  window.addEventListener('resize', updateVisible);
+  function prevSlide() {
+    if (isAnimating) return;
+    isAnimating = true;
+    moveTo(current - 1, true);
+    setTimeout(() => {
+      const max = items.length - VISIBLE;
+      if (current - 1 < 0) {
+        moveTo(max - 1, false);
+      } else {
+        current--;
+      }
+      isAnimating = false;
+    }, 560);
+    restartAuto();
+  }
 
-  // Init
-  updateVisible();
-  goTo(0, false);
-  autoPlay();
+  function autoSlide() {
+    autoSlideInterval = setInterval(nextSlide, 4000);
+  }
+  function restartAuto() {
+    clearInterval(autoSlideInterval);
+    autoSlide();
+  }
+
+  function handleResize() {
+    setupClones();
+    moveTo(current, false);
+  }
+
+  // Xử lý khi kết thúc animation để cập nhật lại current (cực mượt)
+  slider.addEventListener('transitionend', () => {
+    const max = items.length - VISIBLE;
+    if (current > max - 1) {
+      moveTo(0, false);
+    }
+    if (current < 0) {
+      moveTo(max - 1, false);
+    }
+  });
+
+  prevBtn.addEventListener('click', prevSlide);
+  nextBtn.addEventListener('click', nextSlide);
+  window.addEventListener('resize', handleResize);
+
+  // INIT
+  setupClones();
+  moveTo(0, false);
+  autoSlide();
 });
+  
+
+
