@@ -1,3 +1,5 @@
+// slider banner
+ 
 // Vanilla JS Slider for .why-oa-slider
 document.addEventListener('DOMContentLoaded', function () {
   const slider = document.getElementById('whyOASlider');
@@ -222,7 +224,63 @@ document.addEventListener("DOMContentLoaded", function () {
   setupClones();
   moveTo(0, false);
   autoSlide();
+
 });
-  
+ const track = document.querySelector('.category-track');
+  const items = Array.from(track.children);
+
+  // Tự động clone để tạo hiệu ứng vòng lặp
+  items.forEach(item => {
+    const clone = item.cloneNode(true);
+    track.appendChild(clone);
+  });
 
 
+  //
+  const slides = document.querySelectorAll('.slider-slide');
+  const prevBtn = document.querySelector('.slider-arrow.left');
+  const nextBtn = document.querySelector('.slider-arrow.right');
+  let current = 0;
+  let autoSlide;
+
+  function showSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.classList.remove('active');
+      if (i === index) {
+        slide.classList.add('active');
+      }
+    });
+  }
+
+  function nextSlide() {
+    current = (current + 1) % slides.length;
+    showSlide(current);
+  }
+
+  function prevSlide() {
+    current = (current - 1 + slides.length) % slides.length;
+    showSlide(current);
+  }
+
+  function startAutoSlide() {
+    autoSlide = setInterval(nextSlide, 4000); // chuyển slide mỗi 4 giây
+  }
+
+  function resetAutoSlide() {
+    clearInterval(autoSlide);
+    startAutoSlide();
+  }
+
+  prevBtn.addEventListener('click', () => {
+    prevSlide();
+    resetAutoSlide();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    nextSlide();
+    resetAutoSlide();
+  });
+
+  // Khởi động
+  showSlide(current);
+  startAutoSlide();
